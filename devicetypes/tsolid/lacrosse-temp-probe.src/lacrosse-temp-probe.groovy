@@ -1,5 +1,5 @@
 /**
- *  The Weather Company Web
+ *  Lacrosse Temp Probe Virtual Device Handler
  *
  *  Copyright 2020 tsolid
  *
@@ -22,6 +22,11 @@ metadata {
         capability "capability.temperatureMeasurement"
         capability "capability.relativeHumidityMeasurement"
 	}
+    
+    preferences {
+    input name: "deviceId", type: "text", title: "DeviceId", description: "Enter Lacrosse DeviceId", required: true,
+          displayDuringSetup: true
+    }
 
 	tiles(scale: 2) {
 
@@ -44,7 +49,7 @@ metadata {
 }
 
 def installed() {
-    
+    runEvery10Minutes(forcepoll)
 
 }
 
@@ -52,6 +57,7 @@ def updated() {
 
 	log.debug "Executing 'updated'"
 	refresh()
+    runEvery10Minutes(forcepoll)
 }
 
 def poll(){
@@ -106,14 +112,14 @@ def makeJSONTempRequest() {
         uri:  'http://decent-destiny-704.appspot.com',
         path: '/laxservices/device_info.php',
         contentType: 'application/json',
-        query: [deviceid:'00012309F88805DA', limit: '5', timezone: '3', metric: '0']
+        query: [deviceid: deviceId, limit: '5', timezone: '3', metric: '0', cachebreaker: new Date().getTime()]
     ]
 
 	def result = [temp: "", humidity: ""]
 
     try {
         httpGet(params) {resp ->
-            log.debug "resp data: ${resp.data}"
+            //log.debug "resp data: ${resp.data}"
 		result["temp"] = resp.data.device0.obs[0].probe_temp
 		result["humidity"] = resp.data.device0.obs[0].humidity
         }
