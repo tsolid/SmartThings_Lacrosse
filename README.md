@@ -22,7 +22,7 @@ Virtual Device Handler for Samsung Smartthings for use with [Lacrosse Alerts Mob
 
 ## Features
 
-* Polls Probe Temperature and Device Humidty every 10 minutes
+* Polls Probe Temperature and Device Humidity every 10 minutes
 
 ## Todo
 
