@@ -11,3 +11,11 @@ Virtual Device Handler for Samsung Smartthings for use with Lacrosse Alerts Mobi
 
 * When logged into Lacrosse Alerts Mobile the deviceId should be visible in the URL when you visit the device specific information page:
 * ex: http://lacrossealertsmobile.com/v1.2/#device-XXXX-deviceid-XXXX  (where XXXX-deviceid-XXXX is your Id)
+
+## Features
+
+* Polls Probe Temperature and Device Humidty every 10 minutes
+
+## Todo
+
+* Add Device Temperature
