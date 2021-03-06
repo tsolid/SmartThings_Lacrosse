@@ -21,6 +21,7 @@ metadata {
         capability "sensor"
         capability "capability.temperatureMeasurement"
         capability "capability.relativeHumidityMeasurement"
+        capability "Battery"
 	}
     
     preferences {
@@ -39,12 +40,16 @@ metadata {
 	standardTile("humidity", "device.humidity", width: 2, height: 2, canChangeIcon: false) {
             state "default", label: '${currentValue}%', icon: "st.Weather.weather12", backgroundColor:"#999999"      }
 
+	valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
+			state "battery", label:'${currentValue}% battery', unit:""
+		}
+
 	standardTile("refresh", "device.refresh", decoration: "flat", width: 2, height: 2) {
  		state "default", action:"refresh", icon:"st.secondary.refresh"
  		} 
 	
 	main("temperature")
-	details(["LT_Probe","temperature","humidity","refresh" ])
+	details(["LT_Probe","temperature","humidity","battery","refresh" ])
  	}
 }
 
@@ -69,6 +74,7 @@ def poll(){
 def parse(String description) {
 
 	log.debug "Executing 'parse'"
+    state.lastUpdate=""
 	state.lowtempalert=false
 	refresh()    
 	runEvery10Minutes(forcepoll)
@@ -89,9 +95,23 @@ def refresh() {
 
 	log.debug "response relative_humidity: ${mymap['humidity']}"
 	log.debug "response temp_f: ${mymap['temp']}"
-
-	sendEvent(name: "humidity", value:  mymap['humidity'])
-	sendEvent(name: "temperature", value: mymap['temp'], unit: temperatureScale)
+	log.debug "response lowbattery: ${mymap['lowbattery']}"
+	log.debug "response updatetime: ${mymap['updatetime']}"
+    
+    if(state.lastUpdate=="" || state.lastUpdate < mymap['updatetime']) {
+        sendEvent(name: "humidity", value:  mymap['humidity'])
+        sendEvent(name: "temperature", value: mymap['temp'], unit: temperatureScale)
+		if(mymap['lowbattery'] == "0") 
+    	    sendEvent(name: "battery", value: 100, unit: "%")
+        else
+	        sendEvent(name: "battery", value: 1, unit: "%", descriptionText: "${device.displayName} has a low battery", isStateChange: true)
+        sendEvent(name: "updatetime", value:  mymap['updatetime'])
+        state.lastUpdate = mymap['updatetime']
+    } 
+    else 
+    {
+    	log.debug "not updated!"
+    }
 
 	if (getDataValue("LTPlowtempalert")) {
 		if (getDataValue("LTPlowtempalert").toFloat() >= mymap['temperature'].toFloat())
@@ -115,13 +135,15 @@ def makeJSONTempRequest() {
         query: [deviceid: deviceId, limit: '5', timezone: '3', metric: '0', cachebreaker: new Date().getTime()]
     ]
 
-	def result = [temp: "", humidity: ""]
+	def result = [temp: "", humidity: "", lowbattery: "", updatetime: ""]
 
     try {
         httpGet(params) {resp ->
             //log.debug "resp data: ${resp.data}"
+		result["lowbattery"] = resp.data.device0.obs[0].lowbattery
 		result["temp"] = resp.data.device0.obs[0].probe_temp
 		result["humidity"] = resp.data.device0.obs[0].humidity
+		result["updatetime"] = resp.data.device0.obs[0].utctime
         }
     } catch (e) {
         log.error "error: $e"
